@@ -1,0 +1,7 @@
+package-lock.json
+.research/
+.temp/
+node_modules/
+.agents/skills/
+.claude/skills/
+skills-lock.json

@@ -1,0 +1,24 @@
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
+and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.0] - Unreleased
+
+### Added
+
+- `comms` skill for brief replies, a natural voice, and clear technical writing.
+- Scoped preference overrides, persistent conversation preferences, and
+  protection for facts, uncertainty, and exact technical details.
+- Agent Skills frontmatter with license, author, and version metadata.
+- Local installation through the `skills` CLI.
+- An MIT license at the repository root and inside the installed skill folder.
+- Communication examples showing rewrites and preference changes.
+- Prettier, cspell, metadata validation, and clean installation checks for
+  Codex and Claude Code, available through `npm run check` and CI.
+- Validator regression tests for metadata, versions, licenses, links, and
+  installation failures or changed payloads, included in `npm run check`.
+- Documentation for installation, usage, development, and future releases of
+  `yuriih380/comms` on GitHub.

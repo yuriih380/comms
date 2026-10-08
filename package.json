@@ -1,0 +1,38 @@
+{
+  "name": "comms-skill",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agent skill for brief replies, a natural voice, and clear technical writing.",
+  "keywords": [
+    "agent-skills",
+    "skills",
+    "communication",
+    "comms"
+  ],
+  "homepage": "https://github.com/yuriih380/comms#readme",
+  "bugs": "https://github.com/yuriih380/comms/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yuriih380/comms.git"
+  },
+  "license": "MIT",
+  "author": "yuriih380",
+  "type": "module",
+  "scripts": {
+    "check": "npm run format:check && npm run spell && npm test && npm run validate",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "spell": "cspell --no-progress --gitignore --dot .",
+    "test": "node --test tests/validate-skills.test.mjs",
+    "validate": "node scripts/validate-skills.mjs"
+  },
+  "devDependencies": {
+    "cspell": "10.3.5",
+    "prettier": "3.9.9",
+    "skills": "1.7.0",
+    "yaml": "2.9.1"
+  },
+  "engines": {
+    "node": ">=22.20.0"
+  }
+}

@@ -1,0 +1,5 @@
+# Preserve embedded examples in the installed skill.
+overrides:
+  - files: "skills/**/*.md"
+    options:
+      embeddedLanguageFormatting: "off"
