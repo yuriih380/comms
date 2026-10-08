@@ -16,9 +16,6 @@ Install with the [`skills` CLI](https://github.com/vercel-labs/skills)
 npx skills add yuriih380/comms
 ```
 
-This prepared checkout has not been published. GitHub installation requires
-publication of `yuriih380/comms`.
-
 The CLI detects the agents on your machine and asks where to install the skill.
 Other common commands:
 
@@ -27,8 +24,12 @@ Other common commands:
 | Install for every project               | `npx skills add yuriih380/comms -g`                |
 | Install for Codex without prompts       | `npx skills add yuriih380/comms -a codex -y`       |
 | Install for Claude Code without prompts | `npx skills add yuriih380/comms -a claude-code -y` |
+| Install a specific release              | `npx skills add yuriih380/comms#v0.1.0`            |
 | Preview available skills                | `npx skills add yuriih380/comms --list`            |
 | Remove a project installation           | `npx skills remove comms`                          |
+
+Without a tag, the CLI installs from `main`. Use a release tag for a fixed
+version, and run `skills add` again with a newer tag to upgrade it.
 
 Add `-g` to the removal command for a user installation. To install by hand,
 copy [`skills/comms/`](skills/comms/) into your agent's skills folder, such as
@@ -64,8 +65,23 @@ quoted errors. It also preserves conditions, exceptions, negation, and the
 strength of uncertainty. Its writing guidance draws on Simplified Technical
 English principles; it does not claim formal ASD-STE100 compliance.
 
-See the [communication examples](examples/communication/README.md) for sample
-rewrites and scoped preference changes. These illustrate the intended behavior.
+### Example
+
+Ask:
+
+> Shorten this: "It is worth noting that the worker makes three attempts to
+> process each job. If all three attempts fail, the job remains in the queue
+> and an operator must retry it manually."
+
+Example output:
+
+> The worker tries each job three times. If all attempts fail, the job stays
+> in the queue until an operator retries it manually.
+
+The rewrite keeps the attempt count, failure condition, and required actor.
+See the [communication examples](examples/communication/README.md) for more
+rewrites and scoped preference changes. These illustrate the intended behavior;
+they are not records of verified model runs.
 
 ## Development
 
@@ -126,18 +142,18 @@ The GitHub install command uses `main`, so keep it releasable.
 1. Choose the release version. Run `npm version <version> --no-git-tag-version`
    to update `package.json` and `package-lock.json` when the version changes.
    Set the same `metadata.version` in `skills/comms/SKILL.md`.
-2. In [`CHANGELOG.md`](CHANGELOG.md), replace the release's `Unreleased` date
-   with the actual release date. For later releases, add a version section
-   describing the changes.
+2. In [`CHANGELOG.md`](CHANGELOG.md), move unreleased changes into a dated
+   version section. Use the actual release date, add the release link, and
+   update the `Unreleased` comparison link to start at the new tag.
 3. Run `npm ci` and `npm run check`, and review the communication examples.
-   Update the publication note when publishing the repository. Commit and
-   push the verified files to `main`, then wait for CI to pass on that commit.
+   Commit and push the verified files to `main`, then wait for CI to pass on
+   that commit.
 4. Confirm that `v<version>` does not exist. Tag the verified commit, push the
    tag, and create the GitHub release with notes from the changelog.
 5. In a clean project, install
    `npx skills add yuriih380/comms#v<version> --skill comms`. Confirm that the
    installed files match `skills/comms/` at the tagged commit.
-   Add changelog release links after their targets exist.
+   Confirm that the changelog release and comparison links resolve.
 
 ## License
 
