@@ -35,6 +35,53 @@ Add `-g` to the removal command for a user installation. To install by hand,
 copy [`skills/comms/`](skills/comms/) into your agent's skills folder, such as
 `.agents/skills/comms/` or `.claude/skills/comms/`.
 
+### Optional: add to AGENTS.md instead
+
+Regular skill installation is the default. If you want the communication
+preferences loaded as persistent instructions, use the separate `comms-agents`
+command instead of installing the skill. It requires Node.js 22.20 or later
+and Git for npm's GitHub package source:
+
+```bash
+npx --package=github:yuriih380/comms comms-agents add --file ./AGENTS.md
+```
+
+The command creates the file if needed, or prepends a marked `comms` section
+to an existing file. It reads the rules from the bundled `SKILL.md`, omits its
+frontmatter, and includes the MIT notice. It does not install a skill.
+Running it again updates the existing section while preserving surrounding
+instructions. The section follows the target file's line endings.
+
+To preview the resulting file without writing:
+
+```bash
+npx --package=github:yuriih380/comms comms-agents add --file ./AGENTS.md --dry-run
+```
+
+To remove the managed section:
+
+```bash
+npx --package=github:yuriih380/comms comms-agents remove --file ./AGENTS.md
+```
+
+Pass an explicit path to choose another target, including `CLAUDE.md` or
+your global Codex instructions file (normally `~/.codex/AGENTS.md`). Expand
+your home directory using your shell and quote paths containing spaces.
+For a fixed release, append `#v<version>` to the GitHub package source, using
+a release that includes this command. Restart your agent session after changing
+its instructions file. Instruction scope and precedence follow the agent's
+own rules; placing the section first does not grant it special priority.
+
+From a local checkout, use the same options without downloading a package:
+
+```bash
+node scripts/comms-agents.mjs add --file /path/to/project/AGENTS.md
+```
+
+The tool expects UTF-8 files and refuses incomplete or duplicate `comms`
+markers. Edit preferences outside the marked section to keep them across
+updates; edits inside it are replaced when you run `add` again.
+
 ## Usage
 
 Ask your agent in plain language:
@@ -108,7 +155,7 @@ npm run check
 | `npm run format`       | Formats repository files with Prettier.           |
 | `npm run format:check` | Checks formatting without writing.                |
 | `npm run spell`        | Checks spelling with cspell.                      |
-| `npm test`             | Runs validator regression tests in fixtures.      |
+| `npm test`             | Runs validator and instructions-command tests.    |
 | `npm run validate`     | Validates metadata and test-installs the skill.   |
 | `npm run check`        | Runs formatting, spelling, tests, and validation. |
 
@@ -131,6 +178,12 @@ Only `skills/comms/` is installed. It includes `LICENSE.txt` so installed
 copies retain the MIT notice. Keep tooling and examples outside that folder.
 Do not add a root `SKILL.md`, which would make the repository root an installable
 skill.
+
+The optional `comms-agents` executable lives in `scripts/` and is exposed through
+the private package's `bin` entry for npm execution from GitHub. It has no runtime
+dependencies. It is never invoked by regular skill installation. Instructions
+command tests cover repeat runs, updates, removal, previews, existing text,
+line endings, and invalid input in isolated temporary projects.
 
 Add project-specific spelling entries to
 [`cspell.config.yaml`](cspell.config.yaml).

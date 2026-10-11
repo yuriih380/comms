@@ -18,12 +18,19 @@
   "license": "MIT",
   "author": "yuriih380",
   "type": "module",
+  "bin": {
+    "comms-agents": "scripts/comms-agents.mjs"
+  },
+  "files": [
+    "scripts/comms-agents.mjs",
+    "skills/comms/"
+  ],
   "scripts": {
     "check": "npm run format:check && npm run spell && npm test && npm run validate",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "spell": "cspell --no-progress --gitignore --dot .",
-    "test": "node --test tests/validate-skills.test.mjs",
+    "test": "node --test tests/validate-skills.test.mjs tests/comms-agents.test.mjs",
     "validate": "node scripts/validate-skills.mjs"
   },
   "devDependencies": {

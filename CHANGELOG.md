@@ -7,6 +7,14 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- An optional `comms-agents` command to add, preview, update, or remove the
+  communication rules in an explicitly chosen instructions file. Regular skill
+  distribution remains the default.
+- Regression tests for preserving existing instructions and updating managed
+  sections without duplicates.
+
 ## [0.1.0] - 2026-10-08
 
 ### Added
