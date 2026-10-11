@@ -24,7 +24,7 @@ Other common commands:
 | Install for every project               | `npx skills add yuriih380/comms -g`                |
 | Install for Codex without prompts       | `npx skills add yuriih380/comms -a codex -y`       |
 | Install for Claude Code without prompts | `npx skills add yuriih380/comms -a claude-code -y` |
-| Install a specific release              | `npx skills add yuriih380/comms#v0.1.0`            |
+| Install a specific release              | `npx skills add yuriih380/comms#v0.3.0`            |
 | Preview available skills                | `npx skills add yuriih380/comms --list`            |
 | Remove a project installation           | `npx skills remove comms`                          |
 
@@ -42,34 +42,53 @@ preferences loaded as persistent instructions, use the separate `comms-agents`
 command instead of installing the skill. It requires Node.js 22.20 or later:
 
 ```bash
-npx @yuriih380/comms add --file ./AGENTS.md
+npx @yuriih380/comms add
 ```
 
-The command creates the file if needed, or prepends a marked `comms` section
-to an existing file. It reads the rules from the bundled `SKILL.md`, omits its
+Run this from your project or one of its subfolders. The command appends a
+marked `comms` section to the project's root `AGENTS.md`, creating the file
+if needed. It finds the root by walking up from the current directory:
+
+1. Use the nearest folder containing `.git`, including Git worktrees.
+2. If there is no Git root, use the nearest folder containing `package.json`.
+3. If neither exists, use the current directory.
+
+In a Git monorepo, the default is the repository root, even when you run the
+command inside a package. Use `--file` to target a particular package instead.
+
+The command reads the rules from the bundled `SKILL.md`, omits its
 frontmatter, and includes the MIT notice. It does not install a skill.
 Running it again updates the existing section while preserving surrounding
-instructions. The section follows the target file's line endings.
+instructions. Sections added by older versions stay in their existing position.
+The section follows the target file's line endings and preserves its UTF-8 BOM.
 
 To preview the resulting file without writing:
 
 ```bash
-npx @yuriih380/comms add --file ./AGENTS.md --dry-run
+npx @yuriih380/comms add --dry-run
 ```
 
-To remove the managed section:
+To remove the managed section from the same project-root file:
 
 ```bash
-npx @yuriih380/comms remove --file ./AGENTS.md
+npx @yuriih380/comms remove
 ```
 
-Pass an explicit path to choose another target, including `CLAUDE.md` or
+Pass `--file` to override root detection. Relative paths are resolved from the
+current directory. Use the same override for removal:
+
+```bash
+npx @yuriih380/comms add --file ./packages/app/AGENTS.md
+npx @yuriih380/comms remove --file ./packages/app/AGENTS.md
+```
+
+You can also choose another target, including `CLAUDE.md` or
 your global Codex instructions file (normally `~/.codex/AGENTS.md`). Expand
 your home directory using your shell and quote paths containing spaces.
 For a fixed release, use `npx @yuriih380/comms@<version>` with the same options.
 Restart your agent session after changing
 its instructions file. Instruction scope and precedence follow the agent's
-own rules; placing the section first does not grant it special priority.
+own rules.
 
 From a local checkout, use the same options without downloading a package:
 
@@ -92,7 +111,8 @@ Ask your agent in plain language:
 - "Use technical terminology in this document."
 - "Explain in plain English again."
 
-The skill applies three preferences by default:
+The skill and the optional instructions-file command supply the same three
+preferences:
 
 - **Brief replies:** lead with the answer and keep the necessary reasons and
   next action. Remove filler and repeated context.
@@ -173,16 +193,18 @@ CI is configured to run `npm run check` on Node.js 22 and 24, plus the
 [Agent Skills reference validator](https://github.com/agentskills/agentskills/tree/main/skills-ref),
 on pushes to `main` and pull requests.
 
-Only `skills/comms/` is installed. It includes `LICENSE.txt` so installed
-copies retain the MIT notice. Keep tooling and examples outside that folder.
+Regular skill installation copies only `skills/comms/`. It includes `LICENSE.txt`
+so installed copies retain the MIT notice. Keep tooling and examples outside that folder.
 Do not add a root `SKILL.md`, which would make the repository root an installable
 skill.
 
 The optional `comms-agents` executable lives in `scripts/` and is exposed through
 the public `@yuriih380/comms` npm package's `bin` entry. It has no runtime
 dependencies. It is never invoked by regular skill installation. Instructions
-command tests cover repeat runs, updates, removal, previews, existing text,
-line endings, and invalid input in isolated temporary projects.
+command tests cover project-root detection, Git worktrees, nested packages,
+explicit targets, appending, repeat runs, updates, removal, previews, existing
+text, line endings, and invalid input in isolated temporary projects. They also
+check compatibility with sections prepended by earlier versions.
 
 Add project-specific spelling entries to
 [`cspell.config.yaml`](cspell.config.yaml).
@@ -196,7 +218,8 @@ The GitHub install command uses `main`, so keep it releasable.
    Set the same `metadata.version` in `skills/comms/SKILL.md`.
 2. In [`CHANGELOG.md`](CHANGELOG.md), move unreleased changes into a dated
    version section. Use the actual release date, add the release link, and
-   update the `Unreleased` comparison link to start at the new tag.
+   update the `Unreleased` comparison link to start at the new tag. Update the
+   pinned release example in this README.
 3. Run `npm ci` and `npm run check`, and review the communication examples.
    Commit and push the verified files to `main`, then wait for CI to pass on
    that commit.
@@ -209,14 +232,16 @@ The GitHub install command uses `main`, so keep it releasable.
    `npx skills add yuriih380/comms#v<version> --skill comms`. Confirm that the
    installed files match `skills/comms/` at the tagged commit.
    Check the Publish to npm workflow and run
-   `npx @yuriih380/comms@<version> add --file ./AGENTS.md --dry-run`.
+   `npx @yuriih380/comms@<version> add --dry-run` from the project root and a
+   nested folder. Check that `add` appends to the root `AGENTS.md`, repeated
+   `add` runs do not duplicate rules, and `remove` restores existing content.
    Confirm that the changelog release and comparison links resolve.
 
-The package must have an npm trusted publisher configured for GitHub user
+The package's npm trusted publisher is configured for GitHub user
 `yuriih380`, repository `comms`, and workflow filename `publish.yml`, with direct
 publishing allowed and no environment restriction. No npm token secret is needed.
-With npm 11.15.0 or later and an authenticated maintainer account, configure it
-using:
+If it needs to be recreated, use npm 11.15.0 or later with an authenticated
+maintainer account:
 
 ```bash
 npm trust github @yuriih380/comms --repo yuriih380/comms --file publish.yml --allow-publish

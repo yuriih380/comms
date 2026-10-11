@@ -10,11 +10,12 @@ import {
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
+import { tmpdir } from "node:os";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const temporaryRoot = join(root, ".temp");
+const temporaryRoot = tmpdir();
 const cli = join(root, "scripts/comms-agents.mjs");
 
 function fixture(t) {
@@ -62,6 +63,8 @@ for (const original of [
   "# Project\n\nKeep these rules.\n",
   "\uFEFF# Project\r\n\r\nKeep café and українська exactly.",
   "# Project without a final newline",
+  "# Project\n\n",
+  "\uFEFF",
   "",
 ]) {
   test(`add, repeat, update and remove preserve existing bytes: ${JSON.stringify(original)}`, (t) => {
@@ -69,6 +72,10 @@ for (const original of [
     write(original);
     assert.equal(run("add", "--file", target).status, 0);
     const installed = readFileSync(target);
+    assert.ok(installed.toString().startsWith(original));
+    assert.ok(
+      installed.toString().indexOf("<!-- comms:start -->") >= original.length,
+    );
     assert.equal(run("add", "--file", target).status, 0);
     assert.deepEqual(readFileSync(target), installed);
     write(
@@ -146,11 +153,12 @@ test("rejects ambiguous sections and invalid UTF-8 without changing bytes", (t) 
   }
 });
 
-test("requires an explicit action and target and rejects unknown flags", (t) => {
+test("requires an explicit action and rejects empty paths and unknown flags", (t) => {
   const { target, run } = fixture(t);
   for (const args of [
     [],
-    ["add"],
+    ["add", "--file", ""],
+    ["add", "--file", "   "],
     ["add", "--file", target, "--global"],
     ["update", "--file", target],
   ]) {
@@ -158,4 +166,74 @@ test("requires an explicit action and target and rejects unknown flags", (t) => 
   }
   assert.equal(run("--help").status, 0);
   assert.ok(!existsSync(target));
+});
+
+for (const gitMarker of ["directory", "file"]) {
+  test(`defaults to the Git root from a nested package (.git ${gitMarker})`, (t) => {
+    const { directory } = fixture(t);
+    if (gitMarker === "directory") mkdirSync(join(directory, ".git"));
+    else writeFileSync(join(directory, ".git"), "gitdir: /worktree/metadata\n");
+    const nested = join(directory, "packages", "app", "src");
+    mkdirSync(nested, { recursive: true });
+    writeFileSync(join(dirname(nested), "package.json"), "{}");
+    const target = join(directory, "AGENTS.md");
+    const original = "# Project\n\nKeep these rules.";
+    writeFileSync(target, original);
+    const run = (...args) =>
+      spawnSync(process.execPath, [cli, ...args], {
+        cwd: nested,
+        encoding: "utf8",
+        timeout: 10_000,
+      });
+    const preview = run("add", "--dry-run");
+    assert.equal(preview.status, 0, preview.stderr);
+    assert.ok(preview.stdout.startsWith(original + "\n\n<!-- comms:start -->"));
+    assert.equal(readFileSync(target, "utf8"), original);
+    assert.equal(run("add").status, 0);
+    assert.equal(readFileSync(target, "utf8"), preview.stdout);
+    assert.ok(!existsSync(join(nested, "AGENTS.md")));
+    assert.ok(!existsSync(join(dirname(nested), "AGENTS.md")));
+    assert.equal(run("add").status, 0);
+    assert.equal(readFileSync(target, "utf8"), preview.stdout);
+    assert.equal(run("remove").status, 0);
+    assert.equal(readFileSync(target, "utf8"), original);
+    assert.equal(run("add", "--file", "CUSTOM.md").status, 0);
+    assert.ok(existsSync(join(nested, "CUSTOM.md")));
+    assert.equal(readFileSync(target, "utf8"), original);
+  });
+}
+
+test("uses the nearest package root outside Git, then falls back to the current directory", (t) => {
+  const { directory, run } = fixture(t);
+  assert.equal(run("remove").status, 0);
+  assert.ok(!existsSync(join(directory, "AGENTS.md")));
+  assert.equal(run("add").status, 0);
+  assert.ok(existsSync(join(directory, "AGENTS.md")));
+  writeFileSync(join(directory, "package.json"), "{}");
+  const packageRoot = join(directory, "app");
+  const nested = join(packageRoot, "src");
+  mkdirSync(nested, { recursive: true });
+  writeFileSync(join(packageRoot, "package.json"), "{}");
+  const result = spawnSync(process.execPath, [cli, "add"], {
+    cwd: nested,
+    encoding: "utf8",
+    timeout: 10_000,
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(existsSync(join(packageRoot, "AGENTS.md")));
+  assert.ok(!existsSync(join(nested, "AGENTS.md")));
+});
+
+test("updates and removes a legacy prepended section without moving it", (t) => {
+  const { target, run, write } = fixture(t);
+  run("add", "--file", target);
+  const block = readFileSync(target, "utf8");
+  const original = "# Existing project rules\n";
+  write(
+    block.replace(/comms version: [^;]+;/, "comms version: 0.2.0;") + original,
+  );
+  assert.equal(run("add", "--file", target).status, 0);
+  assert.equal(readFileSync(target, "utf8"), block + original);
+  assert.equal(run("remove", "--file", target).status, 0);
+  assert.equal(readFileSync(target, "utf8"), original);
 });

@@ -3,6 +3,10 @@
 These examples illustrate the intended behavior. They are sample requests and
 outputs, not records of verified model runs.
 
+They apply both to the regular skill and to the persistent instructions added
+with `npx @yuriih380/comms add`. See the [installation guide](../../README.md#install)
+for both options and how the command chooses the project's `AGENTS.md`.
+
 ## Shorten factual technical prose
 
 Request:

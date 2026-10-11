@@ -8,5 +8,8 @@ ignorePaths:
 words:
   - ENOENT
   - frontmatter
+  - gitdir
   - pipx
+  - subfolders
+  - worktrees
   - yuriih
