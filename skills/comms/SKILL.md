@@ -4,7 +4,7 @@ description: Write brief, natural replies and clear technical explanations while
 license: MIT
 metadata:
   author: "yuriih380"
-  version: "0.3.0"
+  version: "0.3.1"
 ---
 
 # Communication

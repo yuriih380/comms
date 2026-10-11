@@ -51,9 +51,9 @@ test("creates instructions from the skill without installing a skill", (t) => {
   const skill = readFileSync(join(root, "skills/comms/SKILL.md"), "utf8");
   const body = skill.slice(skill.indexOf("\n---", 4) + 4).trim();
   assert.ok(output.includes(body));
-  assert.ok(
-    output.includes(readFileSync(join(root, "LICENSE"), "utf8").trim()),
-  );
+  assert.ok(!output.includes("MIT License"));
+  assert.ok(!output.includes("Copyright (c)"));
+  assert.ok(!output.includes("Permission is hereby granted"));
   assert.ok(!output.includes("description:"));
   assert.ok(!existsSync(join(directory, ".agents")));
   assert.ok(!existsSync(join(directory, ".claude")));
@@ -237,3 +237,50 @@ test("updates and removes a legacy prepended section without moving it", (t) => 
   assert.equal(run("remove", "--file", target).status, 0);
   assert.equal(readFileSync(target, "utf8"), original);
 });
+
+for (const newline of ["\n", "\r\n"]) {
+  test(`replaces the old comms section and its MIT notice without duplicates (${JSON.stringify(newline)})`, (t) => {
+    const { target, run, write } = fixture(t);
+    const license = readFileSync(join(root, "LICENSE"), "utf8")
+      .trim()
+      .replace(/\r?\n/g, newline);
+    const before = `\uFEFF# Project${newline}${newline}`;
+    // The project's own license is outside our section and must survive.
+    const after = `# Project license${newline}${license}${newline}`;
+    const oldBlock = [
+      "<!-- comms:start -->",
+      "<!-- comms version: 0.3.0; source: https://github.com/yuriih380/comms -->",
+      "",
+      "# Old communication rules",
+      "",
+      "<!--",
+      license,
+      "-->",
+      "<!-- comms:end -->",
+      "",
+      "",
+    ].join(newline);
+    const original = before + oldBlock + after;
+    write(original);
+    const preview = run("add", "--file", target, "--dry-run");
+    assert.equal(preview.status, 0, preview.stderr);
+    assert.equal(readFileSync(target, "utf8"), original);
+    assert.equal(run("add", "--file", target).status, 0);
+    const updated = readFileSync(target, "utf8");
+    assert.equal(updated, preview.stdout);
+    assert.ok(updated.startsWith(before));
+    assert.ok(updated.endsWith(after));
+    const section = updated.slice(before.length, -after.length);
+    assert.ok(section.includes("# Communication"));
+    assert.ok(!section.includes("Old communication rules"));
+    assert.ok(!section.includes("comms version: 0.3.0;"));
+    assert.ok(!section.includes(license));
+    assert.ok(!section.includes("MIT License"));
+    assert.equal(updated.split("<!-- comms:start -->").length - 1, 1);
+    assert.equal(updated.split("<!-- comms:end -->").length - 1, 1);
+    assert.equal(run("add", "--file", target).status, 0);
+    assert.equal(readFileSync(target, "utf8"), updated);
+    assert.equal(run("remove", "--file", target).status, 0);
+    assert.equal(readFileSync(target, "utf8"), before + after);
+  });
+}

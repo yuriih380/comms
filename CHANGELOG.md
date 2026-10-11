@@ -7,6 +7,17 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-11
+
+### Fixed
+
+- Stop inserting the MIT license notice into `AGENTS.md` or other instructions
+  files. Package and skill license files remain included in their distributions.
+- Rerunning `add` replaces the existing managed comms section and removes its
+  old embedded license notice without duplicating instructions. Regression tests
+  cover upgrades, repeat runs, previews, line endings, and preservation of the
+  project's own content and license outside the section.
+
 ## [0.3.0] - 2026-10-11
 
 ### Changed
@@ -62,7 +73,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Documentation for installation, usage, development, and future releases of
   `yuriih380/comms` on GitHub.
 
-[unreleased]: https://github.com/yuriih380/comms/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/yuriih380/comms/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/yuriih380/comms/releases/tag/v0.3.1
 [0.3.0]: https://github.com/yuriih380/comms/releases/tag/v0.3.0
 [0.2.0]: https://github.com/yuriih380/comms/releases/tag/v0.2.0
 [0.2.0-rc.0]: https://github.com/yuriih380/comms/releases/tag/v0.2.0-rc.0

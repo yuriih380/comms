@@ -168,19 +168,12 @@ function createBlock(newline) {
   const { version } = JSON.parse(
     readFileSync(new URL("../package.json", import.meta.url), "utf8"),
   );
-  const license = readFileSync(
-    new URL("../skills/comms/LICENSE.txt", import.meta.url),
-    "utf8",
-  ).trim();
   return [
     START,
     `<!-- comms version: ${version}; source: https://github.com/yuriih380/comms -->`,
     "",
     body,
     "",
-    "<!--",
-    license,
-    "-->",
     END,
     "",
     "",

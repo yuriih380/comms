@@ -24,7 +24,7 @@ Other common commands:
 | Install for every project               | `npx skills add yuriih380/comms -g`                |
 | Install for Codex without prompts       | `npx skills add yuriih380/comms -a codex -y`       |
 | Install for Claude Code without prompts | `npx skills add yuriih380/comms -a claude-code -y` |
-| Install a specific release              | `npx skills add yuriih380/comms#v0.3.0`            |
+| Install a specific release              | `npx skills add yuriih380/comms#v0.3.1`            |
 | Preview available skills                | `npx skills add yuriih380/comms --list`            |
 | Remove a project installation           | `npx skills remove comms`                          |
 
@@ -57,9 +57,11 @@ In a Git monorepo, the default is the repository root, even when you run the
 command inside a package. Use `--file` to target a particular package instead.
 
 The command reads the rules from the bundled `SKILL.md`, omits its
-frontmatter, and includes the MIT notice. It does not install a skill.
-Running it again updates the existing section while preserving surrounding
-instructions. Sections added by older versions stay in their existing position.
+frontmatter, and writes no license text into your instructions file. It does not
+install a skill. Running `add` again replaces the existing marked section without
+duplicating it, including removing the MIT notice inserted by earlier versions.
+Surrounding instructions are preserved. Sections added by older versions stay in
+their existing position.
 The section follows the target file's line endings and preserves its UTF-8 BOM.
 
 To preview the resulting file without writing:
@@ -204,7 +206,8 @@ dependencies. It is never invoked by regular skill installation. Instructions
 command tests cover project-root detection, Git worktrees, nested packages,
 explicit targets, prepending, repeat runs, updates, removal, previews, existing
 text, line endings, and invalid input in isolated temporary projects. They also
-check compatibility with sections prepended by earlier versions.
+check upgrades from sections containing the old embedded license notice,
+preserving the project's own license text outside the managed section.
 
 Add project-specific spelling entries to
 [`cspell.config.yaml`](cspell.config.yaml).
