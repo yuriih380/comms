@@ -18,7 +18,7 @@ const START = "<!-- comms:start -->";
 const END = "<!-- comms:end -->";
 const HELP = `Usage: comms-agents <add|remove> [--file <path>] [--dry-run]
 
-add       Append communication rules, or update the existing comms section.
+add       Prepend communication rules, or update the existing comms section.
 remove    Remove only the managed comms section.
 --file    Override the default project-root AGENTS.md with an explicit path.
 --dry-run Print the resulting file without writing it.
@@ -84,27 +84,17 @@ function main() {
   const newline = original.includes("\r\n") ? "\r\n" : "\n";
   let updated = original;
   if (action === "add") {
+    const block = createBlock(newline);
     if (section) {
       updated =
-        original.slice(0, section.start) +
-        createBlock(newline, section.separatorCount) +
-        original.slice(section.end);
+        original.slice(0, section.start) + block + original.slice(section.end);
     } else {
-      const content = original.replace(/^\uFEFF/, "");
-      const separatorCount =
-        !content || /(?:\r?\n){2}$/.test(content)
-          ? 0
-          : /\r?\n$/.test(content)
-            ? 1
-            : 2;
-      updated =
-        original +
-        newline.repeat(separatorCount) +
-        createBlock(newline, separatorCount);
+      // Keep a UTF-8 BOM at the beginning of the file.
+      const offset = original.startsWith("\uFEFF") ? 1 : 0;
+      updated = original.slice(0, offset) + block + original.slice(offset);
     }
   } else if (section) {
-    updated =
-      original.slice(0, section.removeStart) + original.slice(section.end);
+    updated = original.slice(0, section.start) + original.slice(section.end);
   }
 
   if (values["dry-run"]) {
@@ -162,25 +152,10 @@ function findSection(text) {
   // The two line breaks after the end marker belong to the generated block.
   const after = end + END.length;
   const spacing = /^(?:\r?\n){0,2}/.exec(text.slice(after))[0];
-  const separator = /^<!-- comms:separator ([12]) -->\r?$/m.exec(
-    text.slice(start, end),
-  );
-  const separatorCount = Number(separator?.[1] ?? 0);
-  // Only remove spacing recorded as ours, and only if it is still present.
-  const prefix = separatorCount
-    ? (new RegExp(`(?:\\r?\\n){${separatorCount}}$`).exec(
-        text.slice(0, start),
-      )?.[0] ?? "")
-    : "";
-  return {
-    start,
-    removeStart: start - prefix.length,
-    end: after + spacing.length,
-    separatorCount,
-  };
+  return { start, end: after + spacing.length };
 }
 
-function createBlock(newline, separatorCount = 0) {
+function createBlock(newline) {
   const skill = readFileSync(
     new URL("../skills/comms/SKILL.md", import.meta.url),
     "utf8",
@@ -200,7 +175,6 @@ function createBlock(newline, separatorCount = 0) {
   return [
     START,
     `<!-- comms version: ${version}; source: https://github.com/yuriih380/comms -->`,
-    ...(separatorCount ? [`<!-- comms:separator ${separatorCount} -->`] : []),
     "",
     body,
     "",

@@ -45,7 +45,7 @@ command instead of installing the skill. It requires Node.js 22.20 or later:
 npx @yuriih380/comms add
 ```
 
-Run this from your project or one of its subfolders. The command appends a
+Run this from your project or one of its subfolders. The command prepends a
 marked `comms` section to the project's root `AGENTS.md`, creating the file
 if needed. It finds the root by walking up from the current directory:
 
@@ -202,7 +202,7 @@ The optional `comms-agents` executable lives in `scripts/` and is exposed throug
 the public `@yuriih380/comms` npm package's `bin` entry. It has no runtime
 dependencies. It is never invoked by regular skill installation. Instructions
 command tests cover project-root detection, Git worktrees, nested packages,
-explicit targets, appending, repeat runs, updates, removal, previews, existing
+explicit targets, prepending, repeat runs, updates, removal, previews, existing
 text, line endings, and invalid input in isolated temporary projects. They also
 check compatibility with sections prepended by earlier versions.
 
@@ -233,7 +233,7 @@ The GitHub install command uses `main`, so keep it releasable.
    installed files match `skills/comms/` at the tagged commit.
    Check the Publish to npm workflow and run
    `npx @yuriih380/comms@<version> add --dry-run` from the project root and a
-   nested folder. Check that `add` appends to the root `AGENTS.md`, repeated
+   nested folder. Check that `add` prepends to the root `AGENTS.md`, repeated
    `add` runs do not duplicate rules, and `remove` restores existing content.
    Confirm that the changelog release and comparison links resolve.
 

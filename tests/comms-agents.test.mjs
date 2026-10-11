@@ -72,10 +72,9 @@ for (const original of [
     write(original);
     assert.equal(run("add", "--file", target).status, 0);
     const installed = readFileSync(target);
-    assert.ok(installed.toString().startsWith(original));
-    assert.ok(
-      installed.toString().indexOf("<!-- comms:start -->") >= original.length,
-    );
+    const offset = original.startsWith("\uFEFF") ? 1 : 0;
+    assert.ok(installed.toString().endsWith(original.slice(offset)));
+    assert.ok(installed.toString().indexOf("<!-- comms:start -->") === offset);
     assert.equal(run("add", "--file", target).status, 0);
     assert.deepEqual(readFileSync(target), installed);
     write(
@@ -187,7 +186,8 @@ for (const gitMarker of ["directory", "file"]) {
       });
     const preview = run("add", "--dry-run");
     assert.equal(preview.status, 0, preview.stderr);
-    assert.ok(preview.stdout.startsWith(original + "\n\n<!-- comms:start -->"));
+    assert.ok(preview.stdout.startsWith("<!-- comms:start -->"));
+    assert.ok(preview.stdout.endsWith("<!-- comms:end -->\n\n" + original));
     assert.equal(readFileSync(target, "utf8"), original);
     assert.equal(run("add").status, 0);
     assert.equal(readFileSync(target, "utf8"), preview.stdout);

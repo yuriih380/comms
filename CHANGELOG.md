@@ -11,11 +11,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
-- `npx @yuriih380/comms add` now appends instructions to the project-root
+- `npx @yuriih380/comms add` now prepends instructions to the project-root
   `AGENTS.md` without requiring `--file`. It detects Git roots and worktrees,
   then falls back to the nearest `package.json` folder or the current directory.
-- New sections are appended instead of prepended. Existing managed sections
-  update in place. Removal preserves the original content and spacing.
+- Existing managed sections update in place. Removal preserves the original
+  content and spacing.
 - `remove` and `--dry-run` use the same default target; `--file` remains
   available to override it.
 - Updated installation, development, and release documentation for the default
