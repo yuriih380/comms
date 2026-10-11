@@ -72,7 +72,7 @@ function fixture(t) {
   const pkg = {
     name: "validator-fixture",
     version,
-    private: true,
+    publishConfig: { access: "public" },
     license: "MIT",
   };
   const license = readFileSync(join(root, "LICENSE"), "utf8");
@@ -131,6 +131,19 @@ test("valid metadata, links, and copied payloads pass for both agents", (t) => {
 });
 
 const invalidFixtures = [
+  ...[
+    ["private package", { private: true }],
+    ["restricted package", { publishConfig: { access: "restricted" } }],
+  ].map(([label, changes]) => [
+    label,
+    ({ directory, write }) => {
+      const pkg = JSON.parse(
+        readFileSync(join(directory, "package.json"), "utf8"),
+      );
+      write("package.json", { ...pkg, ...changes });
+    },
+    /package\.json/,
+  ]),
   [
     "missing required metadata",
     ({ write }) =>

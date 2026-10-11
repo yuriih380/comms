@@ -47,7 +47,9 @@ const license = readText("LICENSE");
 const changelog = readText("CHANGELOG.md");
 
 if (pkg) {
-  if (pkg.private !== true) fail("package.json", "tooling must stay private");
+  if (pkg.private === true) fail("package.json", "package must be publishable");
+  if (pkg.publishConfig?.access !== "public")
+    fail("package.json", "publishConfig.access must be public");
   if (pkg.license !== "MIT")
     fail("package.json", "repository license must be MIT");
   if (

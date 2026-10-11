@@ -7,6 +7,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.2.0-rc.0] - 2026-10-11
+
 ### Added
 
 - An optional `comms-agents` command to add, preview, update, or remove the
@@ -14,6 +16,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   distribution remains the default.
 - Regression tests for preserving existing instructions and updating managed
   sections without duplicates.
+- Public npm distribution as `@yuriih380/comms`, with regular skill installation
+  remaining the default.
+- GitHub Actions publishing for stable GitHub releases through npm trusted
+  publishing, with version checks and package verification before upload.
 
 ## [0.1.0] - 2026-10-08
 
@@ -33,5 +39,6 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Documentation for installation, usage, development, and future releases of
   `yuriih380/comms` on GitHub.
 
-[unreleased]: https://github.com/yuriih380/comms/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/yuriih380/comms/compare/v0.2.0-rc.0...HEAD
+[0.2.0-rc.0]: https://github.com/yuriih380/comms/releases/tag/v0.2.0-rc.0
 [0.1.0]: https://github.com/yuriih380/comms/releases/tag/v0.1.0

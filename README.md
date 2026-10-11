@@ -39,11 +39,10 @@ copy [`skills/comms/`](skills/comms/) into your agent's skills folder, such as
 
 Regular skill installation is the default. If you want the communication
 preferences loaded as persistent instructions, use the separate `comms-agents`
-command instead of installing the skill. It requires Node.js 22.20 or later
-and Git for npm's GitHub package source:
+command instead of installing the skill. It requires Node.js 22.20 or later:
 
 ```bash
-npx --package=github:yuriih380/comms comms-agents add --file ./AGENTS.md
+npx @yuriih380/comms add --file ./AGENTS.md
 ```
 
 The command creates the file if needed, or prepends a marked `comms` section
@@ -55,20 +54,20 @@ instructions. The section follows the target file's line endings.
 To preview the resulting file without writing:
 
 ```bash
-npx --package=github:yuriih380/comms comms-agents add --file ./AGENTS.md --dry-run
+npx @yuriih380/comms add --file ./AGENTS.md --dry-run
 ```
 
 To remove the managed section:
 
 ```bash
-npx --package=github:yuriih380/comms comms-agents remove --file ./AGENTS.md
+npx @yuriih380/comms remove --file ./AGENTS.md
 ```
 
 Pass an explicit path to choose another target, including `CLAUDE.md` or
 your global Codex instructions file (normally `~/.codex/AGENTS.md`). Expand
 your home directory using your shell and quote paths containing spaces.
-For a fixed release, append `#v<version>` to the GitHub package source, using
-a release that includes this command. Restart your agent session after changing
+For a fixed release, use `npx @yuriih380/comms@<version>` with the same options.
+Restart your agent session after changing
 its instructions file. Instruction scope and precedence follow the agent's
 own rules; placing the section first does not grant it special priority.
 
@@ -180,7 +179,7 @@ Do not add a root `SKILL.md`, which would make the repository root an installabl
 skill.
 
 The optional `comms-agents` executable lives in `scripts/` and is exposed through
-the private package's `bin` entry for npm execution from GitHub. It has no runtime
+the public `@yuriih380/comms` npm package's `bin` entry. It has no runtime
 dependencies. It is never invoked by regular skill installation. Instructions
 command tests cover repeat runs, updates, removal, previews, existing text,
 line endings, and invalid input in isolated temporary projects.
@@ -202,11 +201,32 @@ The GitHub install command uses `main`, so keep it releasable.
    Commit and push the verified files to `main`, then wait for CI to pass on
    that commit.
 4. Confirm that `v<version>` does not exist. Tag the verified commit, push the
-   tag, and create the GitHub release with notes from the changelog.
+   tag, and publish a stable GitHub release with notes from the changelog.
+   The [publish workflow](.github/workflows/publish.yml) checks that the tag matches
+   the package version, runs the repository checks, and publishes to npm using
+   trusted publishing with provenance. Prereleases are skipped.
 5. In a clean project, install
    `npx skills add yuriih380/comms#v<version> --skill comms`. Confirm that the
    installed files match `skills/comms/` at the tagged commit.
+   Check the Publish to npm workflow and run
+   `npx @yuriih380/comms@<version> add --file ./AGENTS.md --dry-run`.
    Confirm that the changelog release and comparison links resolve.
+
+The package must have an npm trusted publisher configured for GitHub user
+`yuriih380`, repository `comms`, and workflow filename `publish.yml`, with direct
+publishing allowed and no environment restriction. No npm token secret is needed.
+With npm 11.15.0 or later and an authenticated maintainer account, configure it
+using:
+
+```bash
+npm trust github @yuriih380/comms --repo yuriih380/comms --file publish.yml --allow-publish
+```
+
+npm may require a browser security confirmation. A new trust configuration must
+complete a successful publication within two days. The package must already
+exist; the first release candidate can be published manually with
+`npm publish --access public --tag next` before configuring trusted publishing.
+See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
 
 ## License
 
