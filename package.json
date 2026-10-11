@@ -1,6 +1,6 @@
 {
   "name": "@yuriih380/comms",
-  "version": "0.2.0-rc.0",
+  "version": "0.2.0",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
