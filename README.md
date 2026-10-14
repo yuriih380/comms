@@ -24,7 +24,7 @@ Other common commands:
 | Install for every project               | `npx skills add yuriih380/comms -g`                |
 | Install for Codex without prompts       | `npx skills add yuriih380/comms -a codex -y`       |
 | Install for Claude Code without prompts | `npx skills add yuriih380/comms -a claude-code -y` |
-| Install a specific release              | `npx skills add yuriih380/comms#v0.3.1`            |
+| Install a specific release              | `npx skills add yuriih380/comms#v0.3.2`            |
 | Preview available skills                | `npx skills add yuriih380/comms --list`            |
 | Remove a project installation           | `npx skills remove comms`                          |
 
@@ -35,7 +35,7 @@ Add `-g` to the removal command for a user installation. To install by hand,
 copy [`skills/comms/`](skills/comms/) into your agent's skills folder, such as
 `.agents/skills/comms/` or `.claude/skills/comms/`.
 
-### Optional: add to AGENTS.md instead
+### Optional: add to AGENTS.md or CLAUDE.md instead
 
 Regular skill installation is the default. If you want the communication
 preferences loaded as persistent instructions, use the separate `comms-agents`
@@ -46,8 +46,10 @@ npx @yuriih380/comms add
 ```
 
 Run this from your project or one of its subfolders. The command prepends a
-marked `comms` section to the project's root `AGENTS.md`, creating the file
-if needed. It finds the root by walking up from the current directory:
+marked `comms` section to the project's root `AGENTS.md`. If `AGENTS.md` is
+absent and `CLAUDE.md` exists, it uses `CLAUDE.md`. If neither exists, it creates
+`AGENTS.md`. When both exist, `AGENTS.md` takes priority. Preview and removal use
+the same selection rules. It finds the root by walking up from the current directory:
 
 1. Use the nearest folder containing `.git`, including Git worktrees.
 2. If there is no Git root, use the nearest folder containing `package.json`.
@@ -204,6 +206,7 @@ The optional `comms-agents` executable lives in `scripts/` and is exposed throug
 the public `@yuriih380/comms` npm package's `bin` entry. It has no runtime
 dependencies. It is never invoked by regular skill installation. Instructions
 command tests cover project-root detection, Git worktrees, nested packages,
+the `CLAUDE.md` fallback and `AGENTS.md` priority,
 explicit targets, prepending, repeat runs, updates, removal, previews, existing
 text, line endings, and invalid input in isolated temporary projects. They also
 check upgrades from sections containing the old embedded license notice,
@@ -236,7 +239,8 @@ The GitHub install command uses `main`, so keep it releasable.
    installed files match `skills/comms/` at the tagged commit.
    Check the Publish to npm workflow and run
    `npx @yuriih380/comms@<version> add --dry-run` from the project root and a
-   nested folder. Check that `add` prepends to the root `AGENTS.md`, repeated
+   nested folder. Check that `add` prepends to the root `AGENTS.md` (or `CLAUDE.md`
+   when only that file exists), repeated
    `add` runs do not duplicate rules, and `remove` restores existing content.
    Confirm that the changelog release and comparison links resolve.
 

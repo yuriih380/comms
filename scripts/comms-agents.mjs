@@ -20,13 +20,14 @@ const HELP = `Usage: comms-agents <add|remove> [--file <path>] [--dry-run]
 
 add       Prepend communication rules, or update the existing comms section.
 remove    Remove only the managed comms section.
---file    Override the default project-root AGENTS.md with an explicit path.
+--file    Override the default project-root instructions file with an explicit path.
 --dry-run Print the resulting file without writing it.
 --help    Show this help.
 
 This optional command does not install the comms skill.
 The project root is the nearest Git root, otherwise the nearest package.json
 folder, otherwise the current directory. Git worktrees are supported.
+Use AGENTS.md if present, otherwise CLAUDE.md if present, otherwise create AGENTS.md.
 `;
 
 try {
@@ -60,7 +61,7 @@ function main() {
 
   const target = values.file
     ? resolve(values.file)
-    : resolve(findProjectRoot(process.cwd()), "AGENTS.md");
+    : findDefaultTarget(findProjectRoot(process.cwd()));
   let original = "";
   let mode;
   try {
@@ -121,6 +122,20 @@ function main() {
   console.log(
     `${action === "add" ? "Added or updated" : "Removed"} comms: ${target}`,
   );
+}
+
+function findDefaultTarget(root) {
+  for (const name of ["AGENTS.md", "CLAUDE.md"]) {
+    const target = resolve(root, name);
+    try {
+      // Include symlinks and directories so target validation can reject them.
+      lstatSync(target);
+      return target;
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+  return resolve(root, "AGENTS.md");
 }
 
 function findProjectRoot(start) {

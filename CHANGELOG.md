@@ -7,6 +7,16 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-14
+
+### Fixed
+
+- Use the project-root `CLAUDE.md` when `AGENTS.md` is absent. When both exist,
+  `AGENTS.md` keeps priority; when neither exists, `add` creates `AGENTS.md`.
+- Apply the same fallback to previews, updates, and removal while preserving
+  explicit `--file` overrides and existing content. Regression tests cover Git
+  checkouts, worktrees, package roots, and projects without either root marker.
+
 ## [0.3.1] - 2026-10-11
 
 ### Fixed
@@ -73,7 +83,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Documentation for installation, usage, development, and future releases of
   `yuriih380/comms` on GitHub.
 
-[unreleased]: https://github.com/yuriih380/comms/compare/v0.3.1...HEAD
+[unreleased]: https://github.com/yuriih380/comms/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/yuriih380/comms/releases/tag/v0.3.2
 [0.3.1]: https://github.com/yuriih380/comms/releases/tag/v0.3.1
 [0.3.0]: https://github.com/yuriih380/comms/releases/tag/v0.3.0
 [0.2.0]: https://github.com/yuriih380/comms/releases/tag/v0.2.0

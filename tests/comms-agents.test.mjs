@@ -168,40 +168,116 @@ test("requires an explicit action and rejects empty paths and unknown flags", (t
 });
 
 for (const gitMarker of ["directory", "file"]) {
-  test(`defaults to the Git root from a nested package (.git ${gitMarker})`, (t) => {
-    const { directory } = fixture(t);
-    if (gitMarker === "directory") mkdirSync(join(directory, ".git"));
-    else writeFileSync(join(directory, ".git"), "gitdir: /worktree/metadata\n");
-    const nested = join(directory, "packages", "app", "src");
-    mkdirSync(nested, { recursive: true });
-    writeFileSync(join(dirname(nested), "package.json"), "{}");
-    const target = join(directory, "AGENTS.md");
-    const original = "# Project\n\nKeep these rules.";
+  for (const filename of ["AGENTS.md", "CLAUDE.md"]) {
+    test(`defaults to ${filename} at the Git root from a nested package (.git ${gitMarker})`, (t) => {
+      const { directory } = fixture(t);
+      if (gitMarker === "directory") mkdirSync(join(directory, ".git"));
+      else
+        writeFileSync(join(directory, ".git"), "gitdir: /worktree/metadata\n");
+      const nested = join(directory, "packages", "app", "src");
+      mkdirSync(nested, { recursive: true });
+      writeFileSync(join(dirname(nested), "package.json"), "{}");
+      const target = join(directory, filename);
+      const original = "# Project\n\nKeep these rules.";
+      writeFileSync(target, original);
+      const run = (...args) =>
+        spawnSync(process.execPath, [cli, ...args], {
+          cwd: nested,
+          encoding: "utf8",
+          timeout: 10_000,
+        });
+      const preview = run("add", "--dry-run");
+      assert.equal(preview.status, 0, preview.stderr);
+      assert.ok(preview.stdout.startsWith("<!-- comms:start -->"));
+      assert.ok(preview.stdout.endsWith("<!-- comms:end -->\n\n" + original));
+      assert.equal(readFileSync(target, "utf8"), original);
+      assert.equal(run("add").status, 0);
+      assert.equal(readFileSync(target, "utf8"), preview.stdout);
+      assert.ok(!existsSync(join(nested, "AGENTS.md")));
+      assert.ok(!existsSync(join(dirname(nested), "AGENTS.md")));
+      assert.equal(run("add").status, 0);
+      assert.equal(readFileSync(target, "utf8"), preview.stdout);
+      assert.equal(run("remove").status, 0);
+      assert.equal(readFileSync(target, "utf8"), original);
+      if (filename === "CLAUDE.md") {
+        assert.ok(!existsSync(join(directory, "AGENTS.md")));
+      }
+      assert.equal(run("add", "--file", "CUSTOM.md").status, 0);
+      assert.ok(existsSync(join(nested, "CUSTOM.md")));
+      assert.equal(readFileSync(target, "utf8"), original);
+    });
+  }
+}
+
+test("prefers AGENTS.md when both files exist and honors explicit targets", (t) => {
+  const { directory, run } = fixture(t);
+  const agents = join(directory, "AGENTS.md");
+  const claude = join(directory, "CLAUDE.md");
+  writeFileSync(agents, "# Agent rules\n");
+  writeFileSync(claude, "# Claude rules\n");
+  assert.equal(run("add").status, 0);
+  assert.ok(readFileSync(agents, "utf8").includes("<!-- comms:start -->"));
+  assert.equal(readFileSync(claude, "utf8"), "# Claude rules\n");
+  assert.equal(run("remove").status, 0);
+  assert.equal(readFileSync(agents, "utf8"), "# Agent rules\n");
+  assert.equal(run("add", "--file", "CLAUDE.md").status, 0);
+  assert.ok(readFileSync(claude, "utf8").includes("<!-- comms:start -->"));
+  assert.equal(readFileSync(agents, "utf8"), "# Agent rules\n");
+});
+
+for (const packageRoot of [false, true]) {
+  test(`falls back to CLAUDE.md outside Git (package root: ${packageRoot})`, (t) => {
+    const { directory, run } = fixture(t);
+    const target = join(directory, "CLAUDE.md");
+    const original = "\uFEFF# Claude rules\r\nKeep these rules.";
     writeFileSync(target, original);
-    const run = (...args) =>
+    let cwd = directory;
+    if (packageRoot) {
+      writeFileSync(join(directory, "package.json"), "{}");
+      cwd = join(directory, "src");
+      mkdirSync(cwd);
+    }
+    const invoke = (...args) =>
       spawnSync(process.execPath, [cli, ...args], {
-        cwd: nested,
+        cwd,
         encoding: "utf8",
         timeout: 10_000,
       });
-    const preview = run("add", "--dry-run");
+    const preview = invoke("add", "--dry-run");
     assert.equal(preview.status, 0, preview.stderr);
-    assert.ok(preview.stdout.startsWith("<!-- comms:start -->"));
-    assert.ok(preview.stdout.endsWith("<!-- comms:end -->\n\n" + original));
     assert.equal(readFileSync(target, "utf8"), original);
-    assert.equal(run("add").status, 0);
+    assert.equal(invoke("add").status, 0);
     assert.equal(readFileSync(target, "utf8"), preview.stdout);
-    assert.ok(!existsSync(join(nested, "AGENTS.md")));
-    assert.ok(!existsSync(join(dirname(nested), "AGENTS.md")));
-    assert.equal(run("add").status, 0);
+    assert.ok(!/(?<!\r)\n/.test(preview.stdout));
+    assert.ok(preview.stdout.startsWith("\uFEFF<!-- comms:start -->"));
+    writeFileSync(
+      target,
+      preview.stdout.replace("# Communication", "# Old rules"),
+    );
+    assert.equal(invoke("add").status, 0);
     assert.equal(readFileSync(target, "utf8"), preview.stdout);
-    assert.equal(run("remove").status, 0);
+    assert.equal(invoke("remove", "--dry-run").stdout, original);
+    assert.equal(readFileSync(target, "utf8"), preview.stdout);
+    assert.equal(invoke("remove").status, 0);
     assert.equal(readFileSync(target, "utf8"), original);
-    assert.equal(run("add", "--file", "CUSTOM.md").status, 0);
-    assert.ok(existsSync(join(nested, "CUSTOM.md")));
+    assert.ok(!existsSync(join(directory, "AGENTS.md")));
+    assert.ok(!existsSync(join(cwd, "AGENTS.md")));
+    assert.equal(run("add", "--file", "AGENTS.md").status, 0);
+    assert.ok(existsSync(join(directory, "AGENTS.md")));
     assert.equal(readFileSync(target, "utf8"), original);
   });
 }
+
+test("rejects an invalid default target without falling back to another file", (t) => {
+  const { directory, run } = fixture(t);
+  mkdirSync(join(directory, "AGENTS.md"));
+  const claude = join(directory, "CLAUDE.md");
+  writeFileSync(claude, "# Claude rules\n");
+  const result = run("add");
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Target must be a regular file/);
+  assert.equal(readFileSync(claude, "utf8"), "# Claude rules\n");
+});
 
 test("uses the nearest package root outside Git, then falls back to the current directory", (t) => {
   const { directory, run } = fixture(t);
