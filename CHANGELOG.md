@@ -7,6 +7,18 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-10-18
+
+### Fixed
+
+- Keep the MIT license text in the repository-root `LICENSE` and remove the
+  bundled `skills/comms/LICENSE.txt`. Regular skill installs retain `license: MIT`
+  metadata without copying license text into consuming projects. The npm package
+  continues to include the root license.
+- Update validation and regression tests for root-only licensing while retaining
+  license metadata checks and exact installed-file and byte comparisons. Reject
+  installers that unexpectedly copy the root license into the installed skill.
+
 ## [0.3.2] - 2026-10-14
 
 ### Fixed
@@ -83,7 +95,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Documentation for installation, usage, development, and future releases of
   `yuriih380/comms` on GitHub.
 
-[unreleased]: https://github.com/yuriih380/comms/compare/v0.3.2...HEAD
+[unreleased]: https://github.com/yuriih380/comms/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/yuriih380/comms/releases/tag/v0.3.3
 [0.3.2]: https://github.com/yuriih380/comms/releases/tag/v0.3.2
 [0.3.1]: https://github.com/yuriih380/comms/releases/tag/v0.3.1
 [0.3.0]: https://github.com/yuriih380/comms/releases/tag/v0.3.0

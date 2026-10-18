@@ -24,7 +24,7 @@ Other common commands:
 | Install for every project               | `npx skills add yuriih380/comms -g`                |
 | Install for Codex without prompts       | `npx skills add yuriih380/comms -a codex -y`       |
 | Install for Claude Code without prompts | `npx skills add yuriih380/comms -a claude-code -y` |
-| Install a specific release              | `npx skills add yuriih380/comms#v0.3.2`            |
+| Install a specific release              | `npx skills add yuriih380/comms#v0.3.3`            |
 | Preview available skills                | `npx skills add yuriih380/comms --list`            |
 | Remove a project installation           | `npx skills remove comms`                          |
 
@@ -183,22 +183,28 @@ npm run check
 | `npm run check`        | Runs formatting, spelling, tests, and validation. |
 
 The validator checks frontmatter, matching versions in the skill, package,
-lockfile, and changelog, and matching license copies. It installs the skill
+lockfile, and changelog, and matching license metadata. It requires the root
+`LICENSE` without requiring a copy inside the skill. It installs the skill
 with the `skills` CLI in temporary projects for Codex and Claude Code, then
 compares the installed files with the source bytes. These checks cover package
 discovery and installation, not communication behavior in either agent.
 
 Regression tests run the validator against isolated fixtures with a local
-installer stub. They cover invalid metadata, versions, license copies, links,
-and installer failures or changed payloads. `npm run validate` separately checks
+installer stub. They cover root-only licensing, invalid metadata, versions, links,
+and installer failures or changed payloads, including an unexpected copied root
+license. `npm run validate` separately checks
 the real `skills` CLI.
 
 CI is configured to run `npm run check` on Node.js 22 and 24, plus the
 [Agent Skills reference validator](https://github.com/agentskills/agentskills/tree/main/skills-ref),
 on pushes to `main` and pull requests.
 
-Regular skill installation copies only `skills/comms/`. It includes `LICENSE.txt`
-so installed copies retain the MIT notice. Keep tooling and examples outside that folder.
+Regular skill installation copies only `skills/comms/`. The MIT license text
+stays in the repository-root `LICENSE`; the skill retains `license: MIT` metadata
+without a bundled license copy or embedded license text. The npm package retains
+the root `LICENSE`, but neither installer copies it into consuming projects.
+Preserve any independently required third-party notices. Keep tooling and examples
+outside the skill folder.
 Do not add a root `SKILL.md`, which would make the repository root an installable
 skill.
 

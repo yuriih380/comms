@@ -1,5 +1,5 @@
 // Validate the Agent Skills specification plus this repository's release policy.
-// License copies, matching versions, LF text, and contained links are repo rules.
+// License metadata, matching versions, LF text, and contained links are repo rules.
 // https://agentskills.io/specification
 
 import { spawnSync } from "node:child_process";
@@ -43,7 +43,7 @@ const fail = (where, message) => errors.push(`${where}: ${message}`);
 
 const pkg = readJson("package.json");
 const lock = readJson("package-lock.json");
-const license = readText("LICENSE");
+readText("LICENSE");
 const changelog = readText("CHANGELOG.md");
 
 if (pkg) {
@@ -184,17 +184,6 @@ function validateSkill(dirName) {
   // them so each installed payload identifies its license and release version.
   if (pkg && frontmatter.license !== pkg.license) {
     fail(where, `repository policy requires license "${pkg.license}"`);
-  }
-  const licenseFile = join(skillDir, "LICENSE.txt");
-  if (
-    license !== null &&
-    (!existsSync(licenseFile) ||
-      !readFileSync(licenseFile).equals(Buffer.from(license)))
-  ) {
-    fail(
-      `skills/${dirName}/LICENSE.txt`,
-      "must match root LICENSE byte for byte",
-    );
   }
   if (!isPlainObject(metadata)) {
     fail(where, "repository policy requires metadata with a version");

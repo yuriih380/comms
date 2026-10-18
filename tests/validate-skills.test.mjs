@@ -16,7 +16,6 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const temporaryRoot = join(root, ".temp");
 const version = "1.2.3";
 const skillPath = "skills/fixture-skill/SKILL.md";
-const licensePath = "skills/fixture-skill/LICENSE.txt";
 const skill = `---
 name: fixture-skill
 description: A fixture for validator regression tests.
@@ -51,6 +50,7 @@ cpSync(join(source, "skills", "fixture-skill"), target, { recursive: true });
 if (mode === "corrupt") appendFileSync(join(target, "SKILL.md"), "Changed bytes\\n");
 if (mode === "missing") rmSync(join(target, "references", "guide.md"));
 if (mode === "extra") writeFileSync(join(target, "extra.txt"), "Extra file\\n");
+if (mode === "root-license") cpSync(join(source, "LICENSE"), join(target, "LICENSE.txt"));
 `;
 
 function fixture(t) {
@@ -88,7 +88,6 @@ function fixture(t) {
     `## [${version}] - Unreleased\n\n### Added\n\n- Fixture.\n`,
   );
   write(skillPath, skill);
-  write(licensePath, license);
   write(
     "skills/fixture-skill/references/guide.md",
     "See [the skill](../SKILL.md).\n",
@@ -120,7 +119,7 @@ function run(directory, mode = "copy") {
   return { status: result.status, output };
 }
 
-test("valid metadata, links, and copied payloads pass for both agents", (t) => {
+test("root-only licensing, valid metadata, links, and copied payloads pass for both agents", (t) => {
   const { directory } = fixture(t);
   const result = run(directory);
   assert.equal(result.status, 0, result.output);
@@ -187,14 +186,9 @@ const invalidFixtures = [
     /license/,
   ],
   [
-    "missing license copy",
-    ({ directory }) => rmSync(join(directory, licensePath)),
-    /LICENSE\.txt/,
-  ],
-  [
-    "mismatched license copy",
-    ({ write }) => write(licensePath, "Different license\n"),
-    /LICENSE\.txt/,
+    "missing root license",
+    ({ directory }) => rmSync(join(directory, "LICENSE")),
+    /LICENSE.*cannot read file/,
   ],
   [
     "broken local link",
@@ -231,6 +225,7 @@ for (const [mode, diagnostic] of [
   ["corrupt", /SKILL\.md.*source bytes/],
   ["missing", /installed.*expected/],
   ["extra", /extra\.txt/],
+  ["root-license", /LICENSE\.txt/],
   ["fail", /exited 7/],
 ]) {
   test(`installer ${mode} is rejected for both agents`, (t) => {
