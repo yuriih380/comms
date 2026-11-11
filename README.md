@@ -26,7 +26,7 @@ Other common commands:
 | Install for every project               | `npx skills add yuriih380/comms -g`                |
 | Install for Codex without prompts       | `npx skills add yuriih380/comms -a codex -y`       |
 | Install for Claude Code without prompts | `npx skills add yuriih380/comms -a claude-code -y` |
-| Install a specific release              | `npx skills add yuriih380/comms#v0.3.3`            |
+| Install a specific release              | `npx skills add yuriih380/comms#v0.4.0`            |
 | Preview available skills                | `npx skills add yuriih380/comms --list`            |
 | Remove a project installation           | `npx skills remove comms`                          |
 

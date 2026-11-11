@@ -7,6 +7,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-11
+
 ### Added
 
 - `SECURITY.md` with a private reporting link, and `CONTRIBUTING.md`.
@@ -137,7 +139,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Documentation for installation, usage, development, and future releases of
   `yuriih380/comms` on GitHub.
 
-[unreleased]: https://github.com/yuriih380/comms/compare/v0.3.3...HEAD
+[unreleased]: https://github.com/yuriih380/comms/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/yuriih380/comms/releases/tag/v0.4.0
 [0.3.3]: https://github.com/yuriih380/comms/releases/tag/v0.3.3
 [0.3.2]: https://github.com/yuriih380/comms/releases/tag/v0.3.2
 [0.3.1]: https://github.com/yuriih380/comms/releases/tag/v0.3.1
