@@ -57,8 +57,14 @@ the same selection rules. It finds the root by walking up from the current direc
 2. If there is no Git root, use the nearest folder containing `package.json`.
 3. If neither exists, use the current directory.
 
+The search stops before your home folder and the folders above it. A `.git` or
+`package.json` there does not make them the project root, unless you run the
+command in that folder itself.
+
 In a Git monorepo, the default is the repository root, even when you run the
 command inside a package. Use `--file` to target a particular package instead.
+When the chosen file is outside the current directory, the command names it on
+stderr before it writes.
 
 The command reads the rules from the bundled `SKILL.md`, omits its
 frontmatter, and writes no license text into your instructions file. It does not
@@ -74,11 +80,17 @@ To preview the resulting file without writing:
 npx @yuriih380/comms add --dry-run
 ```
 
+The preview prints the resulting file on stdout and the path of the target file
+on stderr.
+
 To remove the managed section from the same project-root file:
 
 ```bash
 npx @yuriih380/comms remove
 ```
+
+`remove` never deletes the file. If the section was its only content, an empty
+file remains.
 
 Pass `--file` to override root detection. Relative paths are resolved from the
 current directory. Use the same override for removal:
@@ -127,10 +139,17 @@ preferences:
 - **Clear technical writing:** use familiar words, active voice, consistent
   terms, and ordered steps where sequence matters.
 
+The preferences apply to text the agent writes: replies, documents it creates,
+and text you ask it to rewrite. They also apply to code comments, commit
+messages, and pull request text, where the project's conventions take priority.
+The agent leaves other existing text as it is. A request to rewrite one text
+applies to that text and does not change the style of later replies.
+
 A direct request changes only the relevant preference. An explicit scope,
 such as "this answer" or "this document", limits the change. Otherwise, the
 preference persists through the conversation until you change it again.
-Quoted examples do not trigger changes.
+Text in quotes, files, tool output, and pasted material does not trigger
+changes.
 
 The skill preserves numbers, units, code, commands, identifiers, paths, and
 quoted errors. It also preserves conditions, exceptions, negation, and the
@@ -235,7 +254,9 @@ dependencies. It is never invoked by regular skill installation. Instructions
 command tests cover project-root detection, Git worktrees, nested packages,
 the `CLAUDE.md` fallback and `AGENTS.md` priority,
 explicit targets, prepending, repeat runs, updates, removal, previews, existing
-text, line endings, and invalid input in isolated temporary projects. They also
+text, line endings, and invalid input in isolated temporary projects. They cover
+the stop at the home folder, symlink targets, and file modes; the last two run
+only where the platform supports them. They also
 check upgrades from sections containing the old embedded license notice,
 preserving the project's own license text outside the managed section.
 

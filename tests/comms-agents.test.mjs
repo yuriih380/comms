@@ -2,11 +2,15 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
+  statSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
@@ -57,6 +61,8 @@ test("creates instructions from the skill without installing a skill", (t) => {
   assert.ok(!output.includes("description:"));
   assert.ok(!existsSync(join(directory, ".agents")));
   assert.ok(!existsSync(join(directory, ".claude")));
+  // The temporary file used for the atomic write is gone.
+  assert.deepEqual(readdirSync(dirname(target)), ["AGENTS.md"]);
 });
 
 for (const original of [
@@ -125,6 +131,11 @@ test("previews add and removal without touching the filesystem", (t) => {
   assert.equal(removal.status, 0, removal.stderr);
   assert.equal(removal.stdout, "# My rules\n");
   assert.deepEqual(readFileSync(target), original);
+  // The preview names its target on stderr and keeps stdout an exact preview.
+  for (const result of [preview, removal]) {
+    assert.ok(result.stderr.includes(`dry run for ${target}`), result.stderr);
+    assert.ok(!result.stdout.includes(target));
+  }
 });
 
 test("removing from a missing file does not create it", (t) => {
@@ -141,6 +152,8 @@ test("rejects ambiguous sections and invalid UTF-8 without changing bytes", (t) 
     Buffer.from(
       "<!-- comms:start --><!-- comms:end --><!-- comms:start --><!-- comms:end -->",
     ),
+    // A marker quoted in a code block still counts, so the command stops.
+    Buffer.from("# Rules\n\n```html\n<!-- comms:start -->\n```\n"),
     Buffer.from([0xff, 0xfe, 0x41, 0x00]),
   ]) {
     write(original);
@@ -159,6 +172,7 @@ test("requires an explicit action and rejects empty paths and unknown flags", (t
     ["add", "--file", ""],
     ["add", "--file", "   "],
     ["add", "--file", target, "--global"],
+    ["add", "extra", "--file", target],
     ["update", "--file", target],
   ]) {
     assert.equal(run(...args).status, 1);
@@ -298,6 +312,100 @@ test("uses the nearest package root outside Git, then falls back to the current 
   assert.equal(result.status, 0, result.stderr);
   assert.ok(existsSync(join(packageRoot, "AGENTS.md")));
   assert.ok(!existsSync(join(nested, "AGENTS.md")));
+});
+
+test("rejects a symlink target and leaves the linked file unchanged", (t) => {
+  const { directory, run } = fixture(t);
+  const real = join(directory, "real.md");
+  const link = join(directory, "AGENTS.md");
+  writeFileSync(real, "# Linked rules\n");
+  try {
+    symlinkSync(real, link);
+  } catch (error) {
+    // Windows needs a privilege to create symlinks.
+    if (error.code === "EPERM") return t.skip("cannot create symlinks here");
+    throw error;
+  }
+  for (const args of [["add"], ["add", "--file", link], ["remove"]]) {
+    const result = run(...args);
+    assert.equal(result.status, 1, result.stdout);
+    assert.match(result.stderr, /Target must be a regular file/);
+  }
+  assert.equal(readFileSync(real, "utf8"), "# Linked rules\n");
+  assert.ok(!existsSync(join(directory, "CLAUDE.md")));
+});
+
+test(
+  "keeps the file mode of an existing target",
+  { skip: process.platform === "win32" && "Windows has no POSIX file modes" },
+  (t) => {
+    const { target, run, write } = fixture(t);
+    write("# Project\n");
+    chmodSync(target, 0o664);
+    assert.equal(run("add", "--file", target).status, 0);
+    assert.equal(statSync(target).mode & 0o777, 0o664);
+    assert.equal(run("remove", "--file", target).status, 0);
+    assert.equal(statSync(target).mode & 0o777, 0o664);
+  },
+);
+
+test("says which file it uses when the default target is outside the current directory", (t) => {
+  const { directory } = fixture(t);
+  mkdirSync(join(directory, ".git"));
+  const nested = join(directory, "packages", "app");
+  mkdirSync(nested, { recursive: true });
+  const run = (cwd, ...args) =>
+    spawnSync(process.execPath, [cli, ...args], {
+      cwd,
+      encoding: "utf8",
+      timeout: 10_000,
+    });
+  const target = join(directory, "AGENTS.md");
+  const outside = run(nested, "add");
+  assert.equal(outside.status, 0, outside.stderr);
+  assert.ok(outside.stderr.includes(target), outside.stderr);
+  assert.match(outside.stderr, /Pass --file to choose another file/);
+  assert.ok(existsSync(target));
+  // No notice when the file is in the current directory or was named.
+  assert.equal(run(directory, "remove").stderr, "");
+  assert.equal(run(nested, "add", "--file", "AGENTS.md").stderr, "");
+});
+
+test("does not treat the home folder or a folder above it as the project root", (t) => {
+  const { directory } = fixture(t);
+  // The fixture folder contains the home folder, as a drive root would.
+  const home = join(directory, "users", "me");
+  const project = join(home, "work", "app");
+  const elsewhere = join(directory, "projects", "app");
+  for (const folder of [project, elsewhere]) {
+    mkdirSync(folder, { recursive: true });
+  }
+  mkdirSync(join(directory, ".git"));
+  mkdirSync(join(home, ".git"));
+  const run = (cwd, ...args) =>
+    spawnSync(process.execPath, [cli, ...args], {
+      cwd,
+      encoding: "utf8",
+      timeout: 10_000,
+      env: { ...process.env, HOME: home, USERPROFILE: home },
+    });
+  // Below the home folder: its Git marker is ignored.
+  assert.equal(run(project, "add").status, 0);
+  assert.ok(existsSync(join(project, "AGENTS.md")));
+  assert.ok(!existsSync(join(home, "AGENTS.md")));
+  // Beside the home folder: the marker in the shared parent is ignored.
+  assert.equal(run(elsewhere, "add").status, 0);
+  assert.ok(existsSync(join(elsewhere, "AGENTS.md")));
+  assert.ok(!existsSync(join(directory, "AGENTS.md")));
+  // A package root below the home folder still counts.
+  writeFileSync(join(home, "work", "package.json"), "{}");
+  assert.equal(run(project, "remove").status, 0);
+  assert.equal(run(project, "add").status, 0);
+  assert.ok(existsSync(join(home, "work", "AGENTS.md")));
+  assert.ok(!existsSync(join(home, "AGENTS.md")));
+  // Started in the home folder itself, the command uses it.
+  assert.equal(run(home, "add").status, 0);
+  assert.ok(existsSync(join(home, "AGENTS.md")));
 });
 
 test("updates and removes a legacy prepended section without moving it", (t) => {

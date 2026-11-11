@@ -3,15 +3,18 @@
 // Optional instructions-file distribution. Regular skill installs never run this.
 import { randomUUID } from "node:crypto";
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { homedir } from "node:os";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 
 const START = "<!-- comms:start -->";
@@ -21,12 +24,13 @@ const HELP = `Usage: comms-agents <add|remove> [--file <path>] [--dry-run]
 add       Prepend communication rules, or update the existing comms section.
 remove    Remove only the managed comms section.
 --file    Override the default project-root instructions file with an explicit path.
---dry-run Print the resulting file without writing it.
+--dry-run Print the resulting file without writing it. The target path goes to stderr.
 --help    Show this help.
 
 This optional command does not install the comms skill.
 The project root is the nearest Git root, otherwise the nearest package.json
 folder, otherwise the current directory. Git worktrees are supported.
+The search stops before your home folder and the folders above it.
 Use AGENTS.md if present, otherwise CLAUDE.md if present, otherwise create AGENTS.md.
 `;
 
@@ -59,9 +63,10 @@ function main() {
     throw new Error(HELP);
   }
 
+  const cwd = process.cwd();
   const target = values.file
     ? resolve(values.file)
-    : findDefaultTarget(findProjectRoot(process.cwd()));
+    : findDefaultTarget(findProjectRoot(cwd));
   let original = "";
   let mode;
   try {
@@ -99,6 +104,8 @@ function main() {
   }
 
   if (values["dry-run"]) {
+    // Name the file on stderr so that stdout stays an exact preview.
+    console.error(`comms-agents: dry run for ${target}`);
     process.stdout.write(updated);
     return;
   }
@@ -106,11 +113,18 @@ function main() {
     console.log(`No changes: ${target}`);
     return;
   }
+  if (!values.file && dirname(target) !== cwd) {
+    console.error(
+      `comms-agents: using the project root file ${target}. Pass --file to choose another file.`,
+    );
+  }
   mkdirSync(dirname(target), { recursive: true });
   // Replace only after the complete output has been written successfully.
   const temporary = `${target}.comms-${randomUUID()}.tmp`;
   try {
     writeFileSync(temporary, updated, { encoding: "utf8", flag: "wx", mode });
+    // The process umask can clear bits of the mode given above.
+    if (mode !== undefined) chmodSync(temporary, mode & 0o7777);
     renameSync(temporary, target);
   } finally {
     try {
@@ -139,18 +153,40 @@ function findDefaultTarget(root) {
 }
 
 function findProjectRoot(start) {
+  const home = findHome();
   let directory = start;
   let packageRoot;
   while (true) {
+    // The home folder and the folders above it hold many projects. A marker
+    // there makes them the root only when the command starts there.
+    if (directory !== start && home && isInside(directory, home)) break;
     // A .git file identifies a worktree; a directory identifies a checkout.
     if (existsSync(resolve(directory, ".git"))) return directory;
     if (!packageRoot && existsSync(resolve(directory, "package.json"))) {
       packageRoot = directory;
     }
     const parent = dirname(directory);
-    if (parent === directory) return packageRoot ?? start;
+    if (parent === directory) break;
     directory = parent;
   }
+  return packageRoot ?? start;
+}
+
+function findHome() {
+  const home = homedir();
+  if (!home) return null;
+  try {
+    // The current directory is a real path, so compare with a real path.
+    return realpathSync(home);
+  } catch {
+    return resolve(home);
+  }
+}
+
+// True when child is parent itself or lies below it.
+function isInside(parent, child) {
+  const path = relative(parent, child);
+  return path !== ".." && !path.startsWith(`..${sep}`) && !isAbsolute(path);
 }
 
 function findSection(text) {

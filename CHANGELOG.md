@@ -20,6 +20,22 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- The skill states its scope. The preferences apply to text the agent writes,
+  including code comments, commit messages, and pull request text, where project
+  conventions take priority. Existing text stays as it is unless you ask for an
+  edit. A request to rewrite one text no longer changes the style of later
+  replies.
+- Style cues in files, tool output, and pasted material no longer change a
+  preference. Before, only quoted examples were named.
+- The skill text uses short lists, states the preserve rule once, and defines
+  technical literals. The description is in the third person and names more of
+  the phrases that should trigger the skill.
+- `comms-agents` no longer treats the home folder, or a folder above it, as the
+  project root when it finds `.git` or `package.json` there. It still uses such
+  a folder when you run the command in it.
+- `--dry-run` prints the path of the target file on stderr. `add` and `remove`
+  name the file on stderr before writing when it is outside the current
+  directory.
 - CI tests Node.js 22, 24, and 26. It installs with `--ignore-scripts`, does not
   keep checkout credentials, cancels superseded runs, and has a timeout.
 - The publish workflow runs the repository checks in a job without publishing
@@ -27,6 +43,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   and publishes the exact commit that was checked. A release is refused when its
   tagged commit is not on `main`. The workflow uses the npm bundled with
   Node.js 26.
+
+### Fixed
+
+- `comms-agents` keeps the exact file mode of the target. Before, the process
+  umask could clear permission bits.
 
 ## [0.3.3] - 2026-10-18
 
