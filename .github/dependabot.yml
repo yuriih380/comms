@@ -1,0 +1,16 @@
+# Dependencies and actions are pinned exactly, so these pull requests are the
+# only way they move. The cooldown skips releases younger than a week.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

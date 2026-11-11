@@ -38,6 +38,13 @@ const ALLOWED_FIELDS = new Set([
   "allowed-tools",
 ]);
 const NAME_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const MAX_BODY_LINES = 500;
+// About 5,000 tokens, the specification's budget for a SKILL.md body. The line
+// limit alone misses long paragraphs.
+const MAX_BODY_CHARS = 20_000;
+// Zero-width, soft-hyphen, bidirectional-control, and tag characters can hide
+// text from a human reviewer.
+const HIDDEN_CHARS = /[­​-‏‪-‮⁠-⁤⁦-⁩﻿\u{E0000}-\u{E007F}]/u;
 const errors = [];
 const fail = (where, message) => errors.push(`${where}: ${message}`);
 
@@ -151,6 +158,8 @@ function validateSkill(dirName) {
     );
   } else if (name !== dirName) {
     fail(where, `name "${name}" must match folder "${dirName}"`);
+  } else if (/anthropic|claude/.test(name)) {
+    fail(where, "name must not contain the reserved words anthropic or claude");
   }
   if (
     typeof description !== "string" ||
@@ -161,6 +170,8 @@ function validateSkill(dirName) {
       where,
       "description must be a nonempty string of at most 1024 characters",
     );
+  } else if (/[<>]/.test(description)) {
+    fail(where, "description must not contain angle brackets");
   }
   if (
     compatibility !== undefined &&
@@ -199,11 +210,34 @@ function validateSkill(dirName) {
       );
     }
   }
-  if (text.slice(match[0].length).trimEnd().split("\n").length > 500) {
-    fail(where, "repository policy limits the skill body to 500 lines");
+  const body = text.slice(match[0].length).trimEnd();
+  if (body.split("\n").length > MAX_BODY_LINES) {
+    fail(
+      where,
+      `repository policy limits the skill body to ${MAX_BODY_LINES} lines`,
+    );
   }
+  if (body.length > MAX_BODY_CHARS) {
+    fail(
+      where,
+      `repository policy limits the skill body to ${MAX_BODY_CHARS} characters; it has ${body.length}`,
+    );
+  }
+  // Every Markdown file in the skill is installed and may be read by an agent.
   for (const file of listFiles(skillDir)) {
-    if (file.endsWith(".md")) checkLinks(skillDir, join(skillDir, file));
+    if (!file.endsWith(".md")) continue;
+    const fileWhere = `skills/${dirName}/${file}`;
+    const isSkill = file === "SKILL.md";
+    const content = isSkill ? text : readFileSync(join(skillDir, file), "utf8");
+    if (!isSkill && content.includes("\r")) {
+      fail(fileWhere, "repository policy requires LF line endings");
+    }
+    const hidden = HIDDEN_CHARS.exec(content);
+    if (hidden) {
+      const code = hidden[0].codePointAt(0).toString(16).toUpperCase();
+      fail(fileWhere, `remove the invisible character U+${code}`);
+    }
+    checkLinks(skillDir, join(skillDir, file));
   }
 }
 
@@ -259,6 +293,20 @@ function checkChangelog(text) {
   );
   if (latest?.[1] !== pkg.version) {
     fail("CHANGELOG.md", `latest version heading must match ${pkg.version}`);
+  } else {
+    // The latest release needs its link reference and the comparison link.
+    const escaped = pkg.version.replace(/[.+]/g, "\\$&");
+    if (!new RegExp(`^\\[${escaped}\\]: \\S+`, "m").test(text)) {
+      fail("CHANGELOG.md", `add a [${pkg.version}] link reference`);
+    }
+    if (
+      !new RegExp(
+        `^\\[unreleased\\]: \\S+/compare/v${escaped}\\.\\.\\.HEAD$`,
+        "im",
+      ).test(text)
+    ) {
+      fail("CHANGELOG.md", `[unreleased] must compare v${pkg.version}...HEAD`);
+    }
   }
   if (!/^### Added$/m.test(text))
     fail("CHANGELOG.md", "initial release must list Added changes");

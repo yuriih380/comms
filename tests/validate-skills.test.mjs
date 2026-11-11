@@ -31,6 +31,17 @@ See [the guide](references/guide.md).
 
 // Fixtures live below the repository so YAML resolves from npm ci's dependencies.
 // Only the fixture's skills CLI is replaced; the production validator is copied.
+const changelog = `## [${version}] - Unreleased
+
+### Added
+
+- Fixture.
+
+[unreleased]: https://example.com/compare/v${version}...HEAD
+[${version}]: https://example.com/releases/tag/v${version}
+`;
+const guidePath = "skills/fixture-skill/references/guide.md";
+
 const installer = `import { appendFileSync, cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -83,15 +94,9 @@ function fixture(t) {
     packages: { "": { name: pkg.name, version } },
   });
   write("LICENSE", license);
-  write(
-    "CHANGELOG.md",
-    `## [${version}] - Unreleased\n\n### Added\n\n- Fixture.\n`,
-  );
+  write("CHANGELOG.md", changelog);
   write(skillPath, skill);
-  write(
-    "skills/fixture-skill/references/guide.md",
-    "See [the skill](../SKILL.md).\n",
-  );
+  write(guidePath, "See [the skill](../SKILL.md).\n");
   write("node_modules/skills/package.json", { name: "skills", type: "module" });
   write("node_modules/skills/bin/cli.mjs", installer);
   mkdirSync(join(directory, "scripts"));
@@ -133,6 +138,8 @@ const invalidFixtures = [
   ...[
     ["private package", { private: true }],
     ["restricted package", { publishConfig: { access: "restricted" } }],
+    ["package license other than MIT", { license: "Apache-2.0" }],
+    ["package version that is not semantic", { version: "1.2" }],
   ].map(([label, changes]) => [
     label,
     ({ directory, write }) => {
@@ -208,6 +215,163 @@ const invalidFixtures = [
     "accidental root skill",
     ({ write }) => write("SKILL.md", skill),
     /^✗ SKILL\.md:/m,
+  ],
+  [
+    "uppercase name",
+    ({ write }) =>
+      write(
+        skillPath,
+        skill.replace("name: fixture-skill", "name: Fixture-Skill"),
+      ),
+    /name must be 1-64 lowercase letters/,
+  ],
+  [
+    "name that differs from its folder",
+    ({ write }) =>
+      write(
+        skillPath,
+        skill.replace("name: fixture-skill", "name: other-skill"),
+      ),
+    /name "other-skill" must match folder "fixture-skill"/,
+  ],
+  [
+    "reserved word in name",
+    ({ write }) =>
+      write(
+        "skills/claude-fixture/SKILL.md",
+        skill
+          .replace("name: fixture-skill", "name: claude-fixture")
+          .replace("See [the guide](references/guide.md).\n", ""),
+      ),
+    /must not contain the reserved words/,
+  ],
+  [
+    "missing description",
+    ({ write }) => write(skillPath, skill.replace(/^description: .*\n/m, "")),
+    /description must be a nonempty string/,
+  ],
+  [
+    "overlong description",
+    ({ write }) =>
+      write(
+        skillPath,
+        skill.replace(
+          "A fixture for validator regression tests.",
+          "x".repeat(1025),
+        ),
+      ),
+    /description must be a nonempty string of at most 1024 characters/,
+  ],
+  [
+    "angle brackets in description",
+    ({ write }) =>
+      write(skillPath, skill.replace("A fixture", "A <b>fixture</b>")),
+    /description must not contain angle brackets/,
+  ],
+  [
+    "unknown frontmatter field",
+    ({ write }) =>
+      write(
+        skillPath,
+        skill.replace("license: MIT", "license: MIT\nwhen_to_use: Always."),
+      ),
+    /unknown field "when_to_use"/,
+  ],
+  [
+    "overlong compatibility",
+    ({ write }) =>
+      write(
+        skillPath,
+        skill.replace(
+          "license: MIT",
+          `license: MIT\ncompatibility: ${"x".repeat(501)}`,
+        ),
+      ),
+    /compatibility must be a nonempty string of at most 500 characters/,
+  ],
+  [
+    "non-string metadata value",
+    ({ write }) =>
+      write(
+        skillPath,
+        skill.replace(
+          `version: "${version}"`,
+          `version: "${version}"\n  build: 7`,
+        ),
+      ),
+    /metadata\.build must be a string/,
+  ],
+  [
+    "CRLF line endings",
+    ({ write }) => write(skillPath, skill.replaceAll("\n", "\r\n")),
+    /SKILL\.md: repository policy requires LF line endings/,
+  ],
+  [
+    "missing frontmatter",
+    ({ write }) => write(skillPath, "# Fixture skill\n"),
+    /missing YAML frontmatter/,
+  ],
+  [
+    "invalid frontmatter YAML",
+    ({ write }) =>
+      write(
+        skillPath,
+        skill.replace("name: fixture-skill", "name: [fixture-skill"),
+      ),
+    /invalid YAML frontmatter/,
+  ],
+  [
+    "too many body lines",
+    ({ write }) => write(skillPath, skill + "line\n".repeat(501)),
+    /limits the skill body to 500 lines/,
+  ],
+  [
+    "oversized body",
+    ({ write }) => write(skillPath, `${skill}${"x".repeat(20_001)}\n`),
+    /limits the skill body to 20000 characters/,
+  ],
+  [
+    "invisible character",
+    ({ write }) => write(skillPath, `${skill}Zero​width\n`),
+    /SKILL\.md: remove the invisible character U\+200B/,
+  ],
+  [
+    "CRLF in a reference file",
+    ({ write }) => write(guidePath, "# Guide\r\n"),
+    /references\/guide\.md: repository policy requires LF line endings/,
+  ],
+  [
+    "invisible character in a reference file",
+    ({ write }) => write(guidePath, "# Gui‮de\n"),
+    /references\/guide\.md: remove the invisible character U\+202E/,
+  ],
+  ...[
+    ["absolute", "[Outside](/etc/hosts)"],
+    ["file URL", "[Outside](file:///etc/hosts)"],
+  ].map(([label, link]) => [
+    `${label} link`,
+    ({ write }) => write(skillPath, skill + "\n" + link + "\n"),
+    /link.*must be relative to the skill/,
+  ]),
+  [
+    "changelog version mismatch",
+    ({ write }) =>
+      write("CHANGELOG.md", changelog.replaceAll(version, "9.9.9")),
+    /CHANGELOG\.md: latest version heading must match/,
+  ],
+  [
+    "missing changelog version link",
+    ({ write }) => write("CHANGELOG.md", changelog.replace(/^\[\d.*\n/m, "")),
+    /CHANGELOG\.md: add a \[1\.2\.3\] link reference/,
+  ],
+  [
+    "stale unreleased comparison link",
+    ({ write }) =>
+      write(
+        "CHANGELOG.md",
+        changelog.replace(`v${version}...HEAD`, "v1.2.2...HEAD"),
+      ),
+    /CHANGELOG\.md: \[unreleased\] must compare v1\.2\.3\.\.\.HEAD/,
   ],
 ];
 

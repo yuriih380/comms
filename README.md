@@ -1,5 +1,7 @@
 # comms
 
+[![CI](https://github.com/yuriih380/comms/actions/workflows/ci.yml/badge.svg)](https://github.com/yuriih380/comms/actions/workflows/ci.yml)
+
 An [Agent Skill](https://agentskills.io) for brief replies, a natural voice,
 and clear technical writing. It keeps explanations direct while preserving
 facts, uncertainty, and exact technical details.
@@ -153,9 +155,26 @@ See the [communication examples](examples/communication/README.md) for more
 rewrites and scoped preference changes. These illustrate the intended behavior;
 they are not records of verified model runs.
 
+## What it touches
+
+The skill is one Markdown file. It ships no scripts and makes no network
+requests. It does not ask the agent to read files, write files, or run commands.
+
+The optional `npx @yuriih380/comms` command downloads the package from npm and
+runs one script that has no dependencies. The script:
+
+- reads the bundled skill and the instructions file it selects;
+- writes only the marked `comms` section of that file, and creates the file if
+  it is missing;
+- makes no network requests;
+- prints the path of the file it changed. With `--dry-run` it writes nothing.
+
+To report a security problem, see [`SECURITY.md`](SECURITY.md).
+
 ## Development
 
-Requires Node.js 22.20 or later.
+Requires Node.js 22.20 or later. See [`CONTRIBUTING.md`](CONTRIBUTING.md) before
+you open a pull request.
 
 To test a local checkout, run this from a target project beside `comms`:
 
@@ -183,7 +202,9 @@ npm run check
 | `npm run check`        | Runs formatting, spelling, tests, and validation. |
 
 The validator checks frontmatter, matching versions in the skill, package,
-lockfile, and changelog, and matching license metadata. It requires the root
+lockfile, and changelog, and matching license metadata. It rejects invisible
+characters in the skill's Markdown files and a skill body over 500 lines or
+20,000 characters. It requires the root
 `LICENSE` without requiring a copy inside the skill. It installs the skill
 with the `skills` CLI in temporary projects for Codex and Claude Code, then
 compares the installed files with the source bytes. These checks cover package
@@ -195,7 +216,7 @@ and installer failures or changed payloads, including an unexpected copied root
 license. `npm run validate` separately checks
 the real `skills` CLI.
 
-CI is configured to run `npm run check` on Node.js 22 and 24, plus the
+CI is configured to run `npm run check` on Node.js 22, 24, and 26, plus the
 [Agent Skills reference validator](https://github.com/agentskills/agentskills/tree/main/skills-ref),
 on pushes to `main` and pull requests.
 

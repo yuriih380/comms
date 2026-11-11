@@ -7,6 +7,22 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- `SECURITY.md` with a private reporting link, and `CONTRIBUTING.md`.
+- A "What it touches" section in the README.
+- Dependabot configuration for npm packages and GitHub Actions, weekly, with a
+  seven-day cooldown.
+- Validator checks for reserved words in the skill name, angle brackets in the
+  description, invisible characters and CRLF in every Markdown file of the
+  skill, a 20,000-character body budget, and the changelog link references.
+  Regression tests cover these and the existing frontmatter rules.
+
+### Changed
+
+- CI tests Node.js 22, 24, and 26. It installs with `--ignore-scripts`, does not
+  keep checkout credentials, cancels superseded runs, and has a timeout.
+
 ## [0.3.3] - 2026-10-18
 
 ### Fixed
