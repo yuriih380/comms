@@ -12,25 +12,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
+  # Runs the development dependencies. It has no publishing rights.
+  verify:
     if: github.repository == 'yuriih380/comms' && !github.event.release.prerelease
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    permissions:
-      contents: read
-      id-token: write
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # Actions are pinned to full commit SHAs; Dependabot keeps them current.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.release.tag_name }}
+          # Full history, so the tagged commit can be compared with main.
+          fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
+          node-version: 26
           package-manager-cache: false
-      - name: Use npm with trusted publishing support
-        run: npm install --global npm@11.21.0
+      - name: Check that the tagged commit is on main
+        id: commit
+        run: |
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          git merge-base --is-ancestor HEAD refs/remotes/origin/main
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Check release identity
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
@@ -43,9 +49,33 @@ jobs:
           assert.match(pkg.version, /^\d+\.\d+\.\d+$/);
           assert.equal(process.env.RELEASE_TAG, `v${pkg.version}`);
           NODE
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npm run check
       - name: Inspect package contents
         run: npm pack --dry-run
+
+  # Holds the publishing rights. It installs nothing and runs no project
+  # scripts, so only the files of the verified commit are involved.
+  publish:
+    needs: verify
+    if: github.repository == 'yuriih380/comms' && !github.event.release.prerelease
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The exact commit that the verify job checked, even if the tag moved.
+          ref: ${{ needs.verify.outputs.sha }}
+          persist-credentials: false
+      # The npm bundled with this Node.js line supports trusted publishing.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm --version
       - name: Publish with npm trusted publishing
-        run: npm publish --access public --provenance
+        run: npm publish --access public --provenance --ignore-scripts

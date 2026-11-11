@@ -258,9 +258,11 @@ The GitHub install command uses `main`, so keep it releasable.
    that commit.
 4. Confirm that `v<version>` does not exist. Tag the verified commit, push the
    tag, and publish a stable GitHub release with notes from the changelog.
-   The [publish workflow](.github/workflows/publish.yml) checks that the tag matches
-   the package version, runs the repository checks, and publishes to npm using
-   trusted publishing with provenance. Prereleases are skipped.
+   The [publish workflow](.github/workflows/publish.yml) has two jobs. The first
+   checks that the tagged commit is on `main` and that the tag matches the
+   package version, then runs the repository checks. The second holds the
+   publishing rights: it installs nothing and publishes that same commit to npm
+   using trusted publishing with provenance. Prereleases are skipped.
 5. In a clean project, install
    `npx skills add yuriih380/comms#v<version> --skill comms`. Confirm that the
    installed files match `skills/comms/` at the tagged commit.

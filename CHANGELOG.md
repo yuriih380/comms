@@ -22,6 +22,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 - CI tests Node.js 22, 24, and 26. It installs with `--ignore-scripts`, does not
   keep checkout credentials, cancels superseded runs, and has a timeout.
+- The publish workflow runs the repository checks in a job without publishing
+  rights. The publishing job installs no dependencies, runs no package scripts,
+  and publishes the exact commit that was checked. A release is refused when its
+  tagged commit is not on `main`. The workflow uses the npm bundled with
+  Node.js 26.
 
 ## [0.3.3] - 2026-10-18
 
