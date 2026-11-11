@@ -39,7 +39,7 @@
   "devDependencies": {
     "cspell": "10.3.5",
     "prettier": "3.9.10",
-    "skills": "1.7.0",
+    "skills": "1.7.6",
     "yaml": "2.9.1"
   },
   "engines": {
