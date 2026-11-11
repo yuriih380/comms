@@ -37,7 +37,7 @@
     "validate": "node scripts/validate-skills.mjs"
   },
   "devDependencies": {
-    "cspell": "10.3.5",
+    "cspell": "10.4.0",
     "prettier": "3.9.10",
     "skills": "1.7.0",
     "yaml": "2.9.1"
